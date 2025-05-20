@@ -1,0 +1,85 @@
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.keras.utils import to_categorical
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+
+# Step 1: Load the MNIST dataset
+(train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.mnist.load_data()
+
+# Step 2: Convert images to DataFrame for analysis
+train_df = pd.DataFrame(train_images.reshape(-1, 28*28))
+test_df = pd.DataFrame(test_images.reshape(-1, 28*28))
+
+# Step 3: Normalize the pixel values
+train_images = train_images.astype('float32') / 255
+test_images = test_images.astype('float32') / 255
+
+# Step 4: One-hot encode the labels
+train_labels = to_categorical(train_labels)
+test_labels = to_categorical(test_labels)
+
+# Step 5: Build the neural network model
+model = Sequential([
+    Flatten(input_shape=(28, 28)),
+    Dense(128, activation='relu'),
+    Dense(10, activation='softmax')
+])
+
+model.compile(optimizer='adam',
+              loss='categorical_crossentropy',
+              metrics=['accuracy'])
+
+# Step 6: Train the model
+model.fit(train_images, train_labels, epochs=5, batch_size=64, validation_data=(test_images, test_labels))
+
+# Step 7: Evaluate the model
+test_loss, test_acc = model.evaluate(test_images, test_labels)
+print(f"Test accuracy: {test_acc}")
+
+# Step 8: Visualize predictions
+def plot_image(i, predictions_array, true_label, img):
+    plt.grid(False)
+    plt.xticks([])
+    plt.yticks([])
+
+    plt.imshow(img[i], cmap=plt.cm.binary)
+
+    predicted_label = np.argmax(predictions_array[i])
+    true_label = np.argmax(true_label[i])
+
+    if predicted_label == true_label:
+        color = 'blue'
+    else:
+        color = 'red'
+
+    plt.xlabel(f"{predicted_label} ({100*np.max(predictions_array[i]):2.0f}%)",
+               color=color)
+
+def plot_value_array(i, predictions_array, true_label):
+    plt.grid(False)
+    plt.xticks(range(10))
+    plt.yticks([])
+
+    this_plot = predictions_array[i]
+    plt.bar(range(10), this_plot, color="#777777")
+    plt.ylim([0, 1])
+
+    predicted_label = np.argmax(this_plot)
+    true_label = np.argmax(true_label[i])
+
+    plt.xticks(range(10), [str(i) for i in range(10)])
+    plt.xlabel(f"True: {true_label}, Pred: {predicted_label}")
+
+predictions = model.predict(test_images)
+
+i = 0
+plt.figure(figsize=(6,3))
+plt.subplot(1,2,1)
+plot_image(i, predictions, test_labels, test_images)
+plt.subplot(1,2,2)
+plot_value_array(i, predictions, test_labels)
+plt.show()
